@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ClassGuard privacy</title>
+<link rel="icon" type="image/png" href="favicon.png">
+<style>
+  :root { --bg:#0d1411; --panel:#141d19; --line:#23302a; --ink:#eef3ef; --muted:#9aa8a0; --accent:#7ad3a5; color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.6 system-ui,-apple-system,"Segoe UI Variable Text","Segoe UI",Roboto,sans-serif; padding:0 20px; }
+  main { max-width:720px; margin:0 auto; padding:56px 0 calc(56px + env(safe-area-inset-bottom,0px)); }
+  a { color:var(--accent); }
+  h1 { font-size:2rem; margin:0 0 6px; letter-spacing:-0.01em; }
+  h2 { font-size:1.1rem; margin:34px 0 8px; }
+  p, li { color:var(--muted); }
+  strong { color:var(--ink); }
+  table { width:100%; border-collapse:collapse; margin-top:10px; font-size:0.95rem; }
+  th, td { text-align:left; padding:10px 12px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { color:var(--ink); font-weight:600; }
+  td { color:var(--muted); }
+  .wrap { overflow-x:auto; }
+  .back { display:inline-block; margin-bottom:28px; text-decoration:none; color:var(--muted); }
+</style>
+</head>
+<body>
+<main>
+  <a class="back" href="./">← ClassGuard</a>
+  <h1>Privacy</h1>
+  <p>Last updated 27 November 2026.</p>
+
+  <h2>The short version</h2>
+  <p><strong>Your homework, timetable, assessments, focus sessions and PIN stay on your own computers.</strong> They sync directly between your Mac and PC over your home network, encrypted, and never pass through ClassGuard's servers.</p>
+  <p>You can use ClassGuard without an account. An account is only needed to connect your devices automatically and, later, for a subscription.</p>
+
+  <h2>What the ClassGuard account stores</h2>
+  <div class="wrap">
+  <table>
+    <tr><th>What</th><th>Why</th></tr>
+    <tr><td>Your email address (from Google, or the email you sign in with)</td><td>To know which devices are yours and to let you sign in.</td></tr>
+    <tr><td>Each signed-in device: its name (e.g. "Sam's PC"), Mac or Windows, ClassGuard version, a public device key and when it was last seen</td><td>So your devices can find each other and you can remove old ones.</td></tr>
+    <tr><td>Short-lived connection requests between your devices</td><td>Encrypted on your Mac so that only your PC can read them; ClassGuard can't. Deleted once used, and after 15 minutes at most.</td></tr>
+    <tr><td>Your plan (early access, trial or subscription)</td><td>To know what your account includes.</td></tr>
+  </table>
+  </div>
+  <p>The account service is hosted by Supabase in Sydney, Australia. Signing in with Google uses Google's own sign-in page; ClassGuard never sees your Google password.</p>
+
+  <h2>What ClassGuard does not do</h2>
+  <ul>
+    <li>No advertising, tracking or analytics.</li>
+    <li>It doesn't upload your homework, timetable, browsing, or which apps you use.</li>
+    <li>It doesn't sell or share your information.</li>
+  </ul>
+
+  <h2>Updates</h2>
+  <p>Installed copies check <a href="https://github.com/Class-Guard/classguard-releases/releases">ClassGuard's GitHub releases</a> for updates twice a day. GitHub sees that a download was requested, as with any website.</p>
+
+  <h2>Deleting your account</h2>
+  <p>Sign out and remove your devices from Settings → Account. To delete the account and everything it stores, open an issue on <a href="https://github.com/Class-Guard/classguard-releases/issues">GitHub</a> asking for deletion. Don't include personal details there; we'll reply with a private way to confirm.</p>
+
+  <h2>Students under 18</h2>
+  <p>ClassGuard is made for students. If you're under 18, check with a parent or guardian before creating an account. The account holds only the details above.</p>
+</main>
+</body>
+</html>
