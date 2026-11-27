@@ -27,7 +27,7 @@
 <main>
   <a class="back" href="./">← ClassGuard</a>
   <h1>Privacy</h1>
-  <p>Last updated 27 November 2026.</p>
+  <p>Last updated 28 November 2026.</p>
 
   <h2>The short version</h2>
   <p><strong>Your homework, timetable, assessments, focus sessions and PIN stay on your own computers.</strong> They sync directly between your Mac and PC over your home network, encrypted, and never pass through ClassGuard's servers.</p>
@@ -40,10 +40,14 @@
     <tr><td>Your email address (from Google, or the email you sign in with)</td><td>To know which devices are yours and to let you sign in.</td></tr>
     <tr><td>Each signed-in device: its name (e.g. "Sam's PC"), Mac or Windows, ClassGuard version, a public device key and when it was last seen</td><td>So your devices can find each other and you can remove old ones.</td></tr>
     <tr><td>Short-lived connection requests between your devices</td><td>Encrypted on your Mac so that only your PC can read them; ClassGuard can't. Deleted once used, and after 15 minutes at most.</td></tr>
-    <tr><td>Your plan (early access, trial or subscription)</td><td>To know what your account includes.</td></tr>
+    <tr><td>Your plan: free, trial (and when it ends) or ClassGuard Pro, whether it's monthly or yearly, and when it renews or ends</td><td>To know what your account includes. Your computers receive a signed copy so Pro keeps working offline.</td></tr>
+    <tr><td>If you subscribe: a Stripe customer ID and the subscription's status</td><td>To link your payment to your account. Nothing else about the payment is stored here.</td></tr>
   </table>
   </div>
   <p>The account service is hosted by Supabase in Sydney, Australia. Signing in with Google uses Google's own sign-in page; ClassGuard never sees your Google password.</p>
+
+  <h2>Payments</h2>
+  <p>ClassGuard Pro payments are handled by <a href="https://stripe.com/au/privacy">Stripe</a>. You (or a parent) pay on Stripe's own page; your card details go to Stripe and never to ClassGuard. Stripe sends ClassGuard only whether the subscription is active and when it renews. Receipts, card changes and cancelling are on Stripe's subscription page, reachable from Settings → Account → Manage subscription.</p>
 
   <h2>What ClassGuard does not do</h2>
   <ul>
