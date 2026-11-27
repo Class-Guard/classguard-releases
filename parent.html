@@ -5,17 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>ClassGuard for parents</title>
 <meta name="description" content="See your student's ClassGuard week: homework, focus time, alerts and requests.">
-<meta name="theme-color" content="#0d1411">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="ClassGuard">
 <link rel="icon" type="image/png" href="favicon.png">
+<link rel="stylesheet" href="theme.css">
+<script src="theme.js"></script>
+
 <link rel="apple-touch-icon" href="logo.png">
 <style>
-  :root {
-    --bg: #0d1411; --panel: #141d19; --panel2: #18231e; --line: #23302a; --ink: #eef3ef; --muted: #9aa8a0; --faint: #6b7a72;
-    --accent: #7ad3a5; --accent-ink: #08130d; --accent-dim: #1d3a2d; --warn: #f1cf7e; --warn-dim: #2a2414; --danger: #f19a8f; --danger-dim: #2c1714;
-    color-scheme: dark;
-  }
   * { box-sizing: border-box; }
   html { -webkit-text-size-adjust: 100%; }
   body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -51,11 +48,21 @@
   .pill { font-size: .75rem; font-weight: 600; padding: 3px 9px; border-radius: 99px; background: var(--accent-dim); color: var(--accent); white-space: nowrap; }
   .pill.warn { background: var(--warn-dim); color: var(--warn); } .pill.bad { background: var(--danger-dim); color: var(--danger); }
   .banner { border-radius: 12px; padding: 12px 14px; margin-bottom: 14px; font-size: .92rem; }
-  .banner.warn { background: var(--warn-dim); color: var(--warn); border: 1px solid #4a3d1c; }
-  .banner.bad { background: var(--danger-dim); color: var(--danger); border: 1px solid #4a2420; }
-  .tabs { display: flex; gap: 6px; overflow-x: auto; margin-bottom: 14px; }
+  .banner.warn { background: var(--warn-dim); color: var(--warn); border: 1px solid var(--warn-line); }
+  .banner.bad { background: var(--danger-dim); color: var(--danger); border: 1px solid var(--danger-line); }
+  .tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
   .tabs button { white-space: nowrap; }
   .tabs button[aria-selected="true"] { background: var(--accent-dim); color: var(--accent); border-color: var(--accent-dim); }
+  .tabs .add { color: var(--accent); border-style: dashed; }
+  .name-row { display: flex; align-items: center; gap: 10px; }
+  .name-row h2 { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .link-btn { background: none; border: 0; padding: 4px 6px; color: var(--muted); font-size: .85rem; font-weight: 500; }
+  textarea { font: inherit; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; width: 100%; resize: vertical; min-height: 44px; }
+  textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .request .field { margin-top: 10px; }
+  .request .field label { display: block; font-size: .8rem; color: var(--muted); margin-bottom: 4px; }
+  .request .actions button { flex: 1; }
+  .note { margin-top: 8px; padding: 8px 10px; border-left: 3px solid var(--accent-dim); color: var(--muted); font-size: .88rem; }
   .request { background: var(--panel2); border: 1px solid var(--line); border-radius: 12px; padding: 14px; margin-top: 10px; }
   .request .actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
   .request .actions select { width: auto; flex: 1; min-width: 120px; }
@@ -72,7 +79,7 @@
   <header>
     <img src="logo.png" alt="">
     <h1>ClassGuard for parents</h1>
-    <button id="signout" hidden>Sign out</button>
+    <button id="cg-gear" class="cg-gear inline"></button>
   </header>
 
   <!-- Signed out -->
@@ -88,11 +95,12 @@
   <!-- Signed in, no student yet -->
   <section id="link" hidden>
     <div class="card">
-      <h2>Link your student</h2>
-      <p class="sub">On their computer: ClassGuard → Settings → Account &amp; devices → Parents → <b>Add a parent</b>. Type the 6-digit code it shows.</p>
+      <h2>Link your child</h2>
+      <p class="sub">On their computer: ClassGuard → Settings → Account &amp; devices → Parents → <b>Add a parent</b>. Type the 6-digit code it shows. You can link more than one child.</p>
       <input id="code" class="code" inputmode="numeric" autocomplete="one-time-code" maxlength="7" placeholder="000 000">
       <p id="link-error" class="bad small" hidden></p>
       <button class="primary" id="link-go" style="width:100%;margin-top:12px">Link</button>
+      <button id="link-back" style="width:100%;margin-top:8px" hidden>Back</button>
     </div>
   </section>
 
@@ -108,9 +116,9 @@
     <div class="card" id="assess-card"><p class="label">Coming up</p><div id="assess"></div></div>
     <div class="card"><p class="label">Alerts</p><div id="alerts"></div></div>
     <div class="card">
-      <p class="label">Linked students</p>
-      <button id="add-student">Link another student</button>
-      <button class="danger" id="unlink" style="margin-left:6px">Stop seeing this student</button>
+      <p class="label">Your children</p>
+      <button id="add-student">+ Add a child</button>
+      <button class="danger" id="unlink" style="margin-left:6px">Stop seeing this child</button>
     </div>
   </section>
 
@@ -130,15 +138,51 @@
   const fail = (msg) => { $("error").textContent = msg; $("error").hidden = !msg; };
   const day = (d) => d.toISOString().slice(0, 10);
   const when = (iso) => new Date(iso).toLocaleString("en-AU", { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
-  const hours = (m) => m >= 60 ? `${Math.floor(m / 60)} h ${m % 60 ? (m % 60) + " min" : ""}`.trim() : `${m} min`;
+  const hours = (m) => m >= 60 ? `${Math.floor(m / 60)}h${m % 60 ? " " + (m % 60) + "m" : ""}` : `${m}m`;
   let me = null, links = [], current = null;
 
   $("google").onclick = async () => {
     try { localStorage.setItem("cg.parentReturn", "1"); } catch {}
     await sb.auth.signInWithOAuth({ provider: "google", options: { redirectTo: SITE } });
   };
-  $("signout").onclick = async () => { await sb.auth.signOut(); location.reload(); };
-  $("add-student").onclick = () => show("link");
+  const remember = () => { try { return localStorage.getItem("cg.rememberChild") !== "0"; } catch { return true; } };
+  const renameChild = (l) => { const v = prompt("What do you call this child?", nameOf(l)); if (v == null) return false;
+    try { v.trim() ? localStorage.setItem("cg.name." + l.student_id, v.trim().slice(0, 40)) : localStorage.removeItem("cg.name." + l.student_id); } catch {} return true; };
+  const stopSeeing = async (l) => { if (!confirm(`Stop seeing ${nameOf(l)}'s reports? They can add you again with a new code.`)) return false;
+    await sb.rpc("parent_unlink", { other: l.student_id }); if (current && current.student_id === l.student_id) current = null; return true; };
+
+  // Settings (gear, top right): appearance comes from theme.js; these are the parent's own.
+  cgSettings.addSection("Account", (sec, close) => {
+    if (!me) { const p = el("p", "muted small", "Not signed in."); p.style.margin = "0"; sec.append(p); return; }
+    const r = el("div", "cg-row"); const t = el("div", "grow"); t.append(document.createTextNode(me.email || "Signed in")); const sm = el("small", null, "Signed in with Google"); t.append(sm);
+    const out = el("button", null, "Sign out"); out.onclick = async () => { await sb.auth.signOut(); location.reload(); };
+    r.append(t, out); sec.append(r);
+  });
+  cgSettings.addSection("Your children", (sec, close) => {
+    if (!me || !links.length) { const p = el("p", "muted small", "No children linked yet."); p.style.margin = "0 0 8px"; sec.append(p); }
+    for (const l of links) {
+      const r = el("div", "cg-row"); const t = el("div", "grow"); t.append(document.createTextNode(nameOf(l)));
+      t.append(el("small", null, l.removed_at ? "Removed you as a parent" : (l.student_email || "")));
+      const rn = el("button", null, "Rename"); rn.onclick = () => { if (renameChild(l)) { close(); load(); } };
+      const rm = el("button", "danger", "Remove"); rm.onclick = async () => { if (await stopSeeing(l)) { close(); load(); } };
+      r.append(t, rn, rm); sec.append(r);
+    }
+    if (me) { const add = el("button", "cg-btn", "+ Add a child"); add.onclick = () => { close(); addChild(); }; add.style.marginTop = "6px"; sec.append(add); }
+  });
+  cgSettings.addSection("Preferences", (sec) => {
+    const r = el("label", "cg-row"); const t = el("div", "grow"); t.append(document.createTextNode("Open on the last child I viewed")); t.append(el("small", null, "Otherwise the first child opens"));
+    const sw = el("span", "cg-switch"); const box = el("input"); box.type = "checkbox"; box.checked = remember(); const knob = el("span");
+    box.onchange = () => { try { localStorage.setItem("cg.rememberChild", box.checked ? "1" : "0"); } catch {} };
+    sw.append(box, knob); r.append(t, sw); sec.append(r);
+    const r2 = el("div", "cg-row"); const t2 = el("div", "grow"); t2.append(document.createTextNode("Names you give children")); t2.append(el("small", null, "Saved only on this device"));
+    r2.append(t2); sec.append(r2);
+  });
+  const addChild = () => { show("link"); $("link-back").hidden = !links.length; $("code").focus(); };
+  $("add-student").onclick = addChild;
+  $("link-back").onclick = () => load();
+  // Names you give each child live only on this phone.
+  const shortName = (l) => (l.student_email || "").split("@")[0] || "Your child";
+  const nameOf = (l) => { try { return localStorage.getItem("cg.name." + l.student_id) || shortName(l); } catch { return shortName(l); } };
   $("code").oninput = (e) => { const d = e.target.value.replace(/\D/g, "").slice(0, 6); e.target.value = d.length > 3 ? d.slice(0, 3) + " " + d.slice(3) : d; };
   $("link-go").onclick = async () => {
     const code = $("code").value.replace(/\D/g, "");
@@ -152,8 +196,7 @@
     $("code").value = ""; await load(row.student_email);
   };
   $("unlink").onclick = async () => {
-    if (!current || !confirm("Stop seeing this student's reports? They can add you again with a new code.")) return;
-    await sb.rpc("parent_unlink", { other: current.student_id }); current = null; await load();
+    if (current && await stopSeeing(current)) await load();
   };
 
   async function load(preferEmail) {
@@ -161,19 +204,22 @@
     const { data, error } = await sb.from("parent_links").select("*").eq("parent_id", me.id).order("created_at");
     if (error) return fail("Couldn't load your students: " + error.message);
     links = data || [];
-    if (!links.length) return show("link");
+    if (!links.length) { show("link"); $("link-back").hidden = true; return; }
     show("dash");
     const tabs = $("students"); tabs.replaceChildren();
-    if (!current || !links.find((l) => l.student_id === current.student_id)) current = links.find((l) => l.student_email === preferEmail) || links[0];
-    if (links.length > 1) for (const l of links) {
-      const b = el("button", null, l.student_email || "Student"); b.setAttribute("role", "tab"); b.setAttribute("aria-selected", l === current);
+    let last = null; try { last = remember() ? localStorage.getItem("cg.lastChild") : null; } catch {}
+    if (!current || !links.find((l) => l.student_id === current.student_id)) current = links.find((l) => l.student_email === preferEmail) || links.find((l) => l.student_id === last) || links[0];
+    try { localStorage.setItem("cg.lastChild", current.student_id); } catch {}
+    for (const l of links) {
+      const b = el("button", null, nameOf(l)); b.setAttribute("role", "tab"); b.setAttribute("aria-selected", l === current);
       b.onclick = () => { current = l; load(); }; tabs.append(b);
     }
+    const add = el("button", "add", "+ Add a child"); add.onclick = addChild; tabs.append(add);
     await render(current);
   }
 
   async function render(link) {
-    const sid = link.student_id, name = link.student_email || "Your student";
+    const sid = link.student_id, name = nameOf(link);
     $("removed").hidden = !link.removed_at;
     if (link.removed_at) { $("removed").textContent = `${name} removed you as a parent on ${when(link.removed_at)}. Ask them for a new code to see reports again.`; }
     const since = new Date(); since.setDate(since.getDate() - 34);
@@ -203,7 +249,11 @@
 
     // Status
     const st = $("status"); st.replaceChildren();
-    const h = el("h2", null, name); st.append(h);
+    const nameRow = el("div", "name-row"); const h = el("h2", null, name);
+    const rename = el("button", "link-btn", "Rename");
+    rename.onclick = () => { if (renameChild(link)) load(); };
+    nameRow.append(h, rename); st.append(nameRow);
+    if (link.student_email && name !== link.student_email) st.append(el("p", "muted small", link.student_email));
     st.append(el("p", "sub", lastSeen ? `Last check-in ${when(lastSeen)}` : "Waiting for the first check-in"));
     for (const r of Object.values(devices)) {
       const row = el("div", "row"); const dot = el("span", "dot" + (Date.now() - new Date(r.updated_at) > 48 * 3600e3 ? " warn" : ""));
@@ -237,8 +287,8 @@
     let svg = `<svg viewBox="0 0 ${W} ${H + 24}" width="100%" role="img" aria-label="Homework on time versus late, last 4 weeks">`;
     weeks.forEach((x, i) => {
       const cx = 30 + i * ((W - 60) / 3), on = (x.on / max) * H, late = (x.late / max) * H;
-      svg += `<rect x="${cx - bw / 2}" y="${H - on - late}" width="${bw}" height="${late}" rx="4" fill="#f1cf7e"/>`;
-      svg += `<rect x="${cx - bw / 2}" y="${H - on}" width="${bw}" height="${on}" rx="4" fill="#7ad3a5"/>`;
+      svg += `<rect x="${cx - bw / 2}" y="${H - on - late}" width="${bw}" height="${late}" rx="4" style="fill:var(--chart-late)"/>`;
+      svg += `<rect x="${cx - bw / 2}" y="${H - on}" width="${bw}" height="${on}" rx="4" style="fill:var(--chart-on)"/>`;
       svg += `<text x="${cx}" y="${H + 16}" text-anchor="middle">${x.label}</text>`;
       if (!x.on && !x.late) svg += `<text x="${cx}" y="${H - 4}" text-anchor="middle">–</text>`;
     });
@@ -269,25 +319,39 @@
       const pill = { pending: ["Waiting for you", "warn"], approved: ["Approved", ""], declined: ["Declined", "bad"], cancelled: ["Cancelled", "bad"] }[q.status];
       head.append(tt, el("span", "pill " + pill[1], pill[0])); box.append(head);
       if (q.status === "pending" && !link.removed_at) {
-        const actions = el("div", "actions");
-        let choice = null;
+        let choice = null, untilInput = null;
         if (q.kind === "break") {
-          choice = el("select"); for (const m of [5, 10, 15, 30, 45, 60, 90, 120]) { const o = el("option", null, `${m} min`); o.value = m; if (m === q.minutes) o.selected = true; choice.append(o); }
-          if (![5, 10, 15, 30, 45, 60, 90, 120].includes(q.minutes)) { const o = el("option", null, `${q.minutes} min`); o.value = q.minutes; o.selected = true; choice.prepend(o); }
+          const f = el("div", "field"); f.append(el("label", null, "How long"));
+          choice = el("select"); const options = [5, 10, 15, 20, 30, 45, 60, 90, 120];
+          if (!options.includes(q.minutes)) options.push(q.minutes); options.sort((a, b) => a - b);
+          for (const m of options) { const o = el("option", null, m >= 60 ? `${m / 60 === Math.floor(m / 60) ? m / 60 : (m / 60).toFixed(1)} hour${m === 60 ? "" : "s"}` : `${m} minutes`); o.value = m; if (m === q.minutes) o.selected = true; choice.append(o); }
+          f.append(choice); box.append(f);
+        } else {
+          const f = el("div", "field"); f.append(el("label", null, "Until"));
+          untilInput = el("input"); untilInput.type = "datetime-local";
+          const u = new Date(q.until); untilInput.value = new Date(u.getTime() - u.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+          f.append(untilInput); box.append(f);
         }
+        const nf = el("div", "field"); nf.append(el("label", null, "Note for them (optional)"));
+        const note = el("textarea"); note.maxLength = 120; note.rows = 2; note.placeholder = "e.g. Finish your maths first, then have a break";
+        nf.append(note); box.append(nf);
+        const actions = el("div", "actions");
         const yes = el("button", "primary", "Approve"), no = el("button", null, "Decline");
         const decide = async (approve) => {
           yes.disabled = no.disabled = true;
-          const note = approve ? "" : (prompt("Add a note for them? (optional)") || "");
-          const body = { requestId: q.id, approve, note }; if (choice) body.minutes = Number(choice.value);
+          const body = { requestId: q.id, approve, note: note.value.trim().slice(0, 120) };
+          if (approve && choice) body.minutes = Number(choice.value);
+          if (approve && untilInput) { const d = new Date(untilInput.value); if (isNaN(d) || d <= new Date()) { fail("Choose an end time in the future."); yes.disabled = no.disabled = false; return; } body.until = d.toISOString(); }
           const { data, error } = await sb.functions.invoke("decide-request", { body });
           if (error || (data && data.error)) { fail((data && data.error) || "Couldn't send your answer. Try again."); yes.disabled = no.disabled = false; return; }
-          await render(link);
+          fail(""); await render(link);
         };
         yes.onclick = () => decide(true); no.onclick = () => decide(false);
-        if (choice) actions.append(choice); actions.append(yes, no); box.append(actions);
-      } else if (q.status === "approved" && q.approved_until) box.append(el("p", "muted small", `Unlocked until ${when(q.approved_until)}.`));
-      else if (q.note) box.append(el("p", "muted small", `Your note: “${q.note}”`));
+        actions.append(no, yes); box.append(actions);
+      } else {
+        if (q.status === "approved" && q.approved_until) box.append(el("p", "muted small", `Unlocked until ${when(q.approved_until)}.`));
+        if (q.note) box.append(el("div", "note", `Your note: “${q.note}”`));
+      }
       rl.append(box);
     }
   }
@@ -296,7 +360,6 @@
     const { data } = await sb.auth.getSession();
     me = data.session && data.session.user;
     if (!me) return show("welcome");
-    $("signout").hidden = false;
     await load();
     setInterval(() => current && render(current), 60000);   // requests and alerts stay fresh while open
   })();
