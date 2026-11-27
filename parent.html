@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ClassGuard for parents</title>
+<meta name="description" content="See your student's ClassGuard week: homework, focus time, alerts and requests.">
+<meta name="theme-color" content="#0d1411">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="ClassGuard">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="logo.png">
+<style>
+  :root {
+    --bg: #0d1411; --panel: #141d19; --panel2: #18231e; --line: #23302a; --ink: #eef3ef; --muted: #9aa8a0; --faint: #6b7a72;
+    --accent: #7ad3a5; --accent-ink: #08130d; --accent-dim: #1d3a2d; --warn: #f1cf7e; --warn-dim: #2a2414; --danger: #f19a8f; --danger-dim: #2c1714;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+         padding: calc(16px + env(safe-area-inset-top, 0px)) 16px calc(32px + env(safe-area-inset-bottom, 0px)); }
+  main { max-width: 720px; margin: 0 auto; }
+  header { display: flex; align-items: center; gap: 12px; margin: 8px 0 20px; }
+  header img { width: 40px; height: 40px; border-radius: 10px; }
+  header h1 { font-size: 1.2rem; margin: 0; flex: 1; }
+  header button { font-size: .85rem; }
+  h2 { font-size: 1.5rem; margin: 0 0 4px; letter-spacing: -.01em; }
+  .sub { color: var(--muted); margin: 0 0 18px; font-size: .95rem; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 18px; margin-bottom: 14px; }
+  .label { font-size: .72rem; letter-spacing: .12em; text-transform: uppercase; color: var(--faint); margin: 0 0 10px; font-weight: 600; }
+  .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .stat { background: var(--panel2); border: 1px solid var(--line); border-radius: 12px; padding: 14px; }
+  .stat .v { font-size: 1.6rem; font-weight: 700; line-height: 1.1; }
+  .stat .k { color: var(--muted); font-size: .82rem; margin-top: 4px; }
+  .good { color: var(--accent); } .bad { color: var(--danger); } .meh { color: var(--warn); }
+  .row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); }
+  .row:first-of-type { border-top: 0; }
+  .row .t { flex: 1; min-width: 0; }
+  .row .t b { display: block; font-weight: 600; }
+  .row .t span { color: var(--muted); font-size: .85rem; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; flex: none; background: var(--accent); }
+  .dot.warn { background: var(--warn); } .dot.bad { background: var(--danger); }
+  button, .btn { font: inherit; font-weight: 600; font-size: .95rem; border-radius: 10px; padding: 10px 16px; border: 1px solid var(--line); background: transparent; color: var(--ink); cursor: pointer; }
+  button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  button.danger { color: var(--danger); }
+  button:disabled { opacity: .5; cursor: default; }
+  input, select { font: inherit; color: var(--ink); background: var(--panel2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; width: 100%; }
+  input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .code { font: 700 2rem/1 ui-monospace, "SF Mono", Consolas, monospace; letter-spacing: .3em; text-align: center; }
+  .pill { font-size: .75rem; font-weight: 600; padding: 3px 9px; border-radius: 99px; background: var(--accent-dim); color: var(--accent); white-space: nowrap; }
+  .pill.warn { background: var(--warn-dim); color: var(--warn); } .pill.bad { background: var(--danger-dim); color: var(--danger); }
+  .banner { border-radius: 12px; padding: 12px 14px; margin-bottom: 14px; font-size: .92rem; }
+  .banner.warn { background: var(--warn-dim); color: var(--warn); border: 1px solid #4a3d1c; }
+  .banner.bad { background: var(--danger-dim); color: var(--danger); border: 1px solid #4a2420; }
+  .tabs { display: flex; gap: 6px; overflow-x: auto; margin-bottom: 14px; }
+  .tabs button { white-space: nowrap; }
+  .tabs button[aria-selected="true"] { background: var(--accent-dim); color: var(--accent); border-color: var(--accent-dim); }
+  .request { background: var(--panel2); border: 1px solid var(--line); border-radius: 12px; padding: 14px; margin-top: 10px; }
+  .request .actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+  .request .actions select { width: auto; flex: 1; min-width: 120px; }
+  .muted { color: var(--muted); } .small { font-size: .85rem; }
+  svg text { fill: var(--muted); font-size: 11px; }
+  footer { color: var(--faint); font-size: .82rem; text-align: center; margin-top: 24px; }
+  footer a { color: var(--muted); }
+  [hidden] { display: none !important; }
+  @media (min-width: 600px) { .grid { grid-template-columns: repeat(4, 1fr); } }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <img src="logo.png" alt="">
+    <h1>ClassGuard for parents</h1>
+    <button id="signout" hidden>Sign out</button>
+  </header>
+
+  <!-- Signed out -->
+  <section id="welcome" hidden>
+    <div class="card">
+      <h2>See their week at a glance</h2>
+      <p class="sub">Homework done on time, focus time, alerts if protection is turned off, and requests for a break, on your phone.</p>
+      <button class="primary" id="google">Sign in with Google</button>
+      <p class="muted small" style="margin:14px 0 0">Use your own Google account, not your student's. Only summaries are shared: never what their homework says, websites or apps.</p>
+    </div>
+  </section>
+
+  <!-- Signed in, no student yet -->
+  <section id="link" hidden>
+    <div class="card">
+      <h2>Link your student</h2>
+      <p class="sub">On their computer: ClassGuard → Settings → Account &amp; devices → Parents → <b>Add a parent</b>. Type the 6-digit code it shows.</p>
+      <input id="code" class="code" inputmode="numeric" autocomplete="one-time-code" maxlength="7" placeholder="000 000">
+      <p id="link-error" class="bad small" hidden></p>
+      <button class="primary" id="link-go" style="width:100%;margin-top:12px">Link</button>
+    </div>
+  </section>
+
+  <!-- Dashboard -->
+  <section id="dash" hidden>
+    <div class="tabs" id="students" role="tablist"></div>
+    <div id="removed" class="banner warn" hidden></div>
+    <div id="stale" class="banner bad" hidden></div>
+    <div class="card" id="status"></div>
+    <div class="card" id="requests" hidden><p class="label">Requests</p><div id="request-list"></div></div>
+    <div class="card"><p class="label">This week</p><div class="grid" id="week"></div><p class="muted small" id="week-note" style="margin:12px 0 0"></p></div>
+    <div class="card"><p class="label">Last 4 weeks · homework on time vs late</p><div id="chart"></div></div>
+    <div class="card" id="assess-card"><p class="label">Coming up</p><div id="assess"></div></div>
+    <div class="card"><p class="label">Alerts</p><div id="alerts"></div></div>
+    <div class="card">
+      <p class="label">Linked students</p>
+      <button id="add-student">Link another student</button>
+      <button class="danger" id="unlink" style="margin-left:6px">Stop seeing this student</button>
+    </div>
+  </section>
+
+  <p id="error" class="banner bad" hidden></p>
+  <footer>Only summaries are shared, never homework text, websites or apps. <a href="privacy.html#parents">Privacy</a></footer>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+(() => {
+  const SITE = "https://class-guard.github.io/classguard-releases/";
+  const sb = supabase.createClient("https://lygaythvmuqscdfpjnfk.supabase.co", "sb_publishable_lb8X5WE6tg63BF6RMEL_Gw_JoV-UsNj",
+    { auth: { flowType: "pkce", detectSessionInUrl: true, persistSession: true } });
+  const $ = (id) => document.getElementById(id);
+  const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+  const show = (id) => { for (const s of ["welcome", "link", "dash"]) $(s).hidden = s !== id; };
+  const fail = (msg) => { $("error").textContent = msg; $("error").hidden = !msg; };
+  const day = (d) => d.toISOString().slice(0, 10);
+  const when = (iso) => new Date(iso).toLocaleString("en-AU", { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
+  const hours = (m) => m >= 60 ? `${Math.floor(m / 60)} h ${m % 60 ? (m % 60) + " min" : ""}`.trim() : `${m} min`;
+  let me = null, links = [], current = null;
+
+  $("google").onclick = async () => {
+    try { localStorage.setItem("cg.parentReturn", "1"); } catch {}
+    await sb.auth.signInWithOAuth({ provider: "google", options: { redirectTo: SITE } });
+  };
+  $("signout").onclick = async () => { await sb.auth.signOut(); location.reload(); };
+  $("add-student").onclick = () => show("link");
+  $("code").oninput = (e) => { const d = e.target.value.replace(/\D/g, "").slice(0, 6); e.target.value = d.length > 3 ? d.slice(0, 3) + " " + d.slice(3) : d; };
+  $("link-go").onclick = async () => {
+    const code = $("code").value.replace(/\D/g, "");
+    $("link-error").hidden = true;
+    if (code.length !== 6) { $("link-error").textContent = "Type all 6 digits."; $("link-error").hidden = false; return; }
+    $("link-go").disabled = true;
+    const { data, error } = await sb.rpc("parent_invite_accept", { code });
+    $("link-go").disabled = false;
+    const row = data && data[0];
+    if (error || !row || row.error) { $("link-error").textContent = (row && row.error) || (error && error.message) || "That didn't work."; $("link-error").hidden = false; return; }
+    $("code").value = ""; await load(row.student_email);
+  };
+  $("unlink").onclick = async () => {
+    if (!current || !confirm("Stop seeing this student's reports? They can add you again with a new code.")) return;
+    await sb.rpc("parent_unlink", { other: current.student_id }); current = null; await load();
+  };
+
+  async function load(preferEmail) {
+    fail("");
+    const { data, error } = await sb.from("parent_links").select("*").eq("parent_id", me.id).order("created_at");
+    if (error) return fail("Couldn't load your students: " + error.message);
+    links = data || [];
+    if (!links.length) return show("link");
+    show("dash");
+    const tabs = $("students"); tabs.replaceChildren();
+    if (!current || !links.find((l) => l.student_id === current.student_id)) current = links.find((l) => l.student_email === preferEmail) || links[0];
+    if (links.length > 1) for (const l of links) {
+      const b = el("button", null, l.student_email || "Student"); b.setAttribute("role", "tab"); b.setAttribute("aria-selected", l === current);
+      b.onclick = () => { current = l; load(); }; tabs.append(b);
+    }
+    await render(current);
+  }
+
+  async function render(link) {
+    const sid = link.student_id, name = link.student_email || "Your student";
+    $("removed").hidden = !link.removed_at;
+    if (link.removed_at) { $("removed").textContent = `${name} removed you as a parent on ${when(link.removed_at)}. Ask them for a new code to see reports again.`; }
+    const since = new Date(); since.setDate(since.getDate() - 34);
+    const [sum, ev, req] = await Promise.all([
+      sb.from("daily_summaries").select("*").eq("student_id", sid).gte("day", day(since)).order("day"),
+      sb.from("student_events").select("*").eq("student_id", sid).order("at", { ascending: false }).limit(30),
+      sb.from("unlock_requests").select("*").eq("student_id", sid).order("created_at", { ascending: false }).limit(10),
+    ]);
+    if (sum.error || ev.error || req.error) return fail("Couldn't load reports. Pull down to refresh.");
+    const rows = sum.data || [], events = ev.data || [], requests = req.data || [];
+
+    // One row per day: the computers share homework (take the highest), minutes per computer (take the highest).
+    const byDay = {};
+    for (const r of rows) {
+      const d = byDay[r.day] ||= { due: 0, on: 0, late: 0, overdue: 0, open: 0, focus: 0, locked: 0, updated: r.updated_at, assessments: r.assessments };
+      d.due = Math.max(d.due, r.homework_due); d.on = Math.max(d.on, r.homework_on_time); d.late = Math.max(d.late, r.homework_late);
+      d.overdue = Math.max(d.overdue, r.homework_overdue); d.open = Math.max(d.open, r.homework_open);
+      d.focus = Math.max(d.focus, r.focus_minutes); d.locked = Math.max(d.locked, r.locked_minutes);
+      if (r.updated_at > d.updated) { d.updated = r.updated_at; d.assessments = r.assessments; }
+    }
+    const devices = {};
+    for (const r of rows) if (!devices[r.device_id] || r.updated_at > devices[r.device_id].updated_at) devices[r.device_id] = r;
+    const lastSeen = Object.values(devices).map((r) => r.updated_at).sort().pop();
+    const stale = !lastSeen || Date.now() - new Date(lastSeen) > 48 * 3600e3;
+    $("stale").hidden = !stale || !!link.removed_at;
+    $("stale").textContent = lastSeen ? `No check-in from ClassGuard since ${when(lastSeen)}. Their computer may be off, offline, or signed out of ClassGuard.` : "No reports yet. They appear within an hour once ClassGuard is open and signed in on their computer.";
+
+    // Status
+    const st = $("status"); st.replaceChildren();
+    const h = el("h2", null, name); st.append(h);
+    st.append(el("p", "sub", lastSeen ? `Last check-in ${when(lastSeen)}` : "Waiting for the first check-in"));
+    for (const r of Object.values(devices)) {
+      const row = el("div", "row"); const dot = el("span", "dot" + (Date.now() - new Date(r.updated_at) > 48 * 3600e3 ? " warn" : ""));
+      const t = el("div", "t"); t.append(el("b", null, r.platform === "windows" ? "Windows PC" : "Mac"), el("span", null, `ClassGuard ${r.app_version || ""} · seen ${when(r.updated_at)}`));
+      row.append(dot, t); st.append(row);
+    }
+
+    // This week (Monday to today)
+    const monday = new Date(); monday.setHours(0, 0, 0, 0); monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
+    const week = Object.entries(byDay).filter(([d]) => d >= day(monday)).map(([, v]) => v);
+    const t = week.reduce((a, v) => ({ due: a.due + v.due, on: a.on + v.on, late: a.late + v.late, focus: a.focus + v.focus, locked: a.locked + v.locked }), { due: 0, on: 0, late: 0, focus: 0, locked: 0 });
+    const latest = Object.entries(byDay).sort().pop()?.[1];
+    const stats = [
+      [t.on + t.late ? `${t.on}/${t.on + t.late}` : "–", "homework done on time", t.late ? "meh" : "good"],
+      [latest ? latest.overdue : "–", "overdue right now", latest && latest.overdue ? "bad" : "good"],
+      [hours(t.focus), "in focus sessions", ""],
+      [hours(t.locked), "distractions locked", ""],
+    ];
+    const w = $("week"); w.replaceChildren();
+    for (const [v, k, cls] of stats) { const s = el("div", "stat"); s.append(el("div", "v " + cls, String(v)), el("div", "k", k)); w.append(s); }
+    $("week-note").textContent = latest ? `${latest.open} homework task${latest.open === 1 ? "" : "s"} still open.` : "";
+
+    // 4-week chart: on time (green) vs late (amber) per week
+    const weeks = [];
+    for (let i = 3; i >= 0; i--) {
+      const start = new Date(monday); start.setDate(start.getDate() - 7 * i); const end = new Date(start); end.setDate(end.getDate() + 7);
+      const days = Object.entries(byDay).filter(([d]) => d >= day(start) && d < day(end)).map(([, v]) => v);
+      weeks.push({ label: start.toLocaleDateString("en-AU", { day: "numeric", month: "short" }), on: days.reduce((a, v) => a + v.on, 0), late: days.reduce((a, v) => a + v.late, 0) });
+    }
+    const max = Math.max(1, ...weeks.map((x) => x.on + x.late)), H = 120, W = 320, bw = 44;
+    let svg = `<svg viewBox="0 0 ${W} ${H + 24}" width="100%" role="img" aria-label="Homework on time versus late, last 4 weeks">`;
+    weeks.forEach((x, i) => {
+      const cx = 30 + i * ((W - 60) / 3), on = (x.on / max) * H, late = (x.late / max) * H;
+      svg += `<rect x="${cx - bw / 2}" y="${H - on - late}" width="${bw}" height="${late}" rx="4" fill="#f1cf7e"/>`;
+      svg += `<rect x="${cx - bw / 2}" y="${H - on}" width="${bw}" height="${on}" rx="4" fill="#7ad3a5"/>`;
+      svg += `<text x="${cx}" y="${H + 16}" text-anchor="middle">${x.label}</text>`;
+      if (!x.on && !x.late) svg += `<text x="${cx}" y="${H - 4}" text-anchor="middle">–</text>`;
+    });
+    $("chart").innerHTML = svg + "</svg>";
+
+    // Assessments
+    const as = $("assess"); as.replaceChildren(); const list = (latest && latest.assessments) || [];
+    $("assess-card").hidden = !list.length;
+    for (const a of list) { const r = el("div", "row"); const tt = el("div", "t"); tt.append(el("b", null, a.subject)); r.append(tt, el("span", "pill" + (a.days <= 3 ? " warn" : ""), a.days === 0 ? "Today" : a.days === 1 ? "Tomorrow" : `In ${a.days} days`)); as.append(r); }
+
+    // Alerts
+    const names = { protection_gap: ["Protection was off", "bad"], quit: ["ClassGuard was quit", "warn"], removed: ["ClassGuard was being removed", "bad"],
+                    holiday_on: ["Holiday Mode turned on", "warn"], pin_lockout: ["Wrong PIN, five times", "bad"], parent_removed: ["A parent was removed", "warn"] };
+    const al = $("alerts"); al.replaceChildren();
+    if (!events.length) al.append(el("p", "muted small", "Nothing to report. 👍"));
+    for (const e of events) {
+      const [title, cls] = names[e.kind] || [e.kind, "warn"];
+      const r = el("div", "row"); const tt = el("div", "t"); tt.append(el("b", null, title), el("span", null, `${when(e.at)}${e.detail ? " · " + e.detail : ""}`));
+      r.append(el("span", "dot " + cls), tt); al.append(r);
+    }
+
+    // Requests
+    const rl = $("request-list"); rl.replaceChildren(); $("requests").hidden = !requests.length;
+    for (const q of requests) {
+      const box = el("div", "request");
+      const what = q.kind === "break" ? `A ${q.minutes}-minute break` : `Holiday Mode until ${when(q.until)}`;
+      const head = el("div", "row"); const tt = el("div", "t"); tt.append(el("b", null, what), el("span", null, `Asked ${when(q.created_at)}${q.reason ? " · “" + q.reason + "”" : ""}`));
+      const pill = { pending: ["Waiting for you", "warn"], approved: ["Approved", ""], declined: ["Declined", "bad"], cancelled: ["Cancelled", "bad"] }[q.status];
+      head.append(tt, el("span", "pill " + pill[1], pill[0])); box.append(head);
+      if (q.status === "pending" && !link.removed_at) {
+        const actions = el("div", "actions");
+        let choice = null;
+        if (q.kind === "break") {
+          choice = el("select"); for (const m of [5, 10, 15, 30, 45, 60, 90, 120]) { const o = el("option", null, `${m} min`); o.value = m; if (m === q.minutes) o.selected = true; choice.append(o); }
+          if (![5, 10, 15, 30, 45, 60, 90, 120].includes(q.minutes)) { const o = el("option", null, `${q.minutes} min`); o.value = q.minutes; o.selected = true; choice.prepend(o); }
+        }
+        const yes = el("button", "primary", "Approve"), no = el("button", null, "Decline");
+        const decide = async (approve) => {
+          yes.disabled = no.disabled = true;
+          const note = approve ? "" : (prompt("Add a note for them? (optional)") || "");
+          const body = { requestId: q.id, approve, note }; if (choice) body.minutes = Number(choice.value);
+          const { data, error } = await sb.functions.invoke("decide-request", { body });
+          if (error || (data && data.error)) { fail((data && data.error) || "Couldn't send your answer. Try again."); yes.disabled = no.disabled = false; return; }
+          await render(link);
+        };
+        yes.onclick = () => decide(true); no.onclick = () => decide(false);
+        if (choice) actions.append(choice); actions.append(yes, no); box.append(actions);
+      } else if (q.status === "approved" && q.approved_until) box.append(el("p", "muted small", `Unlocked until ${when(q.approved_until)}.`));
+      else if (q.note) box.append(el("p", "muted small", `Your note: “${q.note}”`));
+      rl.append(box);
+    }
+  }
+
+  (async () => {
+    const { data } = await sb.auth.getSession();
+    me = data.session && data.session.user;
+    if (!me) return show("welcome");
+    $("signout").hidden = false;
+    await load();
+    setInterval(() => current && render(current), 60000);   // requests and alerts stay fresh while open
+  })();
+})();
+</script>
+</body>
+</html>
