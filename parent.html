@@ -67,6 +67,15 @@
   .request .actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
   .request .actions select { width: auto; flex: 1; min-width: 120px; }
   .muted { color: var(--muted); } .small { font-size: .85rem; }
+  .field label { display: block; font-size: .8rem; color: var(--muted); margin-bottom: 4px; }
+  .hw-form { margin-top: 12px; padding-top: 14px; border-top: 1px solid var(--line); }
+  .hw-form .field { margin-bottom: 10px; }
+  .hw-fields { display: grid; grid-template-columns: 1fr; gap: 0 10px; }
+  @media (min-width: 600px) { .hw-fields { grid-template-columns: 1fr 1fr; } }
+  .tick { width: 22px; height: 22px; border-radius: 50%; flex: none; border: 2px solid var(--line); display: grid; place-items: center; }
+  .tick.done { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  .tick.done::after { content: ""; width: 9px; height: 5px; border: 2px solid currentColor; border-top: 0; border-right: 0; transform: translateY(-1px) rotate(-45deg); }
+  .row.done .t b { color: var(--muted); text-decoration: line-through; }
   svg text { fill: var(--muted); font-size: 11px; }
   footer { color: var(--faint); font-size: .82rem; text-align: center; margin-top: 24px; }
   footer a { color: var(--muted); }
@@ -110,8 +119,25 @@
     <div id="removed" class="banner warn" hidden></div>
     <div id="stale" class="banner bad" hidden></div>
     <div class="card" id="status"></div>
-    <div class="card" id="requests" hidden><p class="label">Requests</p><div id="request-list"></div></div>
+    <div class="card" id="requests" hidden><p class="label">Requests</p>
+      <p class="muted small" style="margin:0 0 4px">The first time, your child confirms you on each of their computers with their ClassGuard PIN (Settings → Account &amp; devices → Parents). Until then your approvals won't unlock that computer.</p>
+      <div id="request-list"></div></div>
+    <div class="card" id="hw-card">
+      <p class="label">Homework you've set</p>
+      <div id="hw-list"></div>
+      <form id="hw-form" class="hw-form">
+        <div class="hw-fields">
+          <div class="field"><label for="hw-subject">Subject</label><input id="hw-subject" maxlength="60" list="hw-subjects" placeholder="e.g. Maths" required><datalist id="hw-subjects"></datalist></div>
+          <div class="field"><label for="hw-due">Due (optional)</label><input id="hw-due" type="datetime-local"></div>
+        </div>
+        <div class="field"><label for="hw-note">What to do</label><textarea id="hw-note" maxlength="500" rows="2" placeholder="e.g. Exercise 4B, questions 1–10" required></textarea></div>
+        <button class="primary" id="hw-add" type="submit">Add homework</button>
+        <p class="muted small" style="margin:8px 0 0">It appears in their ClassGuard homework list within a minute, and counts towards the homework lock like any other task.</p>
+      </form>
+    </div>
     <div class="card"><p class="label">This week</p><div class="grid" id="week"></div><p class="muted small" id="week-note" style="margin:12px 0 0"></p></div>
+    <div class="card" id="none-card"><p class="label">Classes marked “No homework” this week</p><div id="none-list"></div>
+      <p class="muted small" style="margin:10px 0 0">After every class, ClassGuard asks for the homework or a “No homework” answer, and keeps distractions locked until it gets one. If a subject shows up here a lot, it's worth checking with them or the teacher.</p></div>
     <div class="card"><p class="label">Last 4 weeks · homework on time vs late</p><div id="chart"></div></div>
     <div class="card" id="assess-card"><p class="label">Coming up</p><div id="assess"></div></div>
     <div class="card"><p class="label">Alerts</p><div id="alerts"></div></div>
@@ -123,7 +149,7 @@
   </section>
 
   <p id="error" class="banner bad" hidden></p>
-  <footer>Only summaries are shared, never homework text, websites or apps. <a href="privacy.html#parents">Privacy</a></footer>
+  <footer>Parents see summaries, never a student's own homework notes, websites or apps. <a href="privacy.html#parents">Privacy</a></footer>
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
@@ -136,7 +162,7 @@
   const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
   const show = (id) => { for (const s of ["welcome", "link", "dash"]) $(s).hidden = s !== id; };
   const fail = (msg) => { $("error").textContent = msg; $("error").hidden = !msg; };
-  const day = (d) => d.toISOString().slice(0, 10);
+  const day = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;   // local date, like the apps
   const when = (iso) => new Date(iso).toLocaleString("en-AU", { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
   const hours = (m) => m >= 60 ? `${Math.floor(m / 60)}h${m % 60 ? " " + (m % 60) + "m" : ""}` : `${m}m`;
   let me = null, links = [], current = null;
@@ -223,18 +249,22 @@
     $("removed").hidden = !link.removed_at;
     if (link.removed_at) { $("removed").textContent = `${name} removed you as a parent on ${when(link.removed_at)}. Ask them for a new code to see reports again.`; }
     const since = new Date(); since.setDate(since.getDate() - 34);
-    const [sum, ev, req] = await Promise.all([
+    const [sum, ev, req, hw] = await Promise.all([
       sb.from("daily_summaries").select("*").eq("student_id", sid).gte("day", day(since)).order("day"),
       sb.from("student_events").select("*").eq("student_id", sid).order("at", { ascending: false }).limit(30),
       sb.from("unlock_requests").select("*").eq("student_id", sid).order("created_at", { ascending: false }).limit(10),
+      sb.from("parent_homework").select("*").eq("student_id", sid).order("created_at", { ascending: false }).limit(30),
     ]);
     if (sum.error || ev.error || req.error) return fail("Couldn't load reports. Pull down to refresh.");
     const rows = sum.data || [], events = ev.data || [], requests = req.data || [];
+    renderHomework(link, hw.error ? [] : hw.data || []);
 
     // One row per day: the computers share homework (take the highest), minutes per computer (take the highest).
     const byDay = {};
     for (const r of rows) {
-      const d = byDay[r.day] ||= { due: 0, on: 0, late: 0, overdue: 0, open: 0, focus: 0, locked: 0, updated: r.updated_at, assessments: r.assessments };
+      const d = byDay[r.day] ||= { due: 0, on: 0, late: 0, overdue: 0, open: 0, focus: 0, locked: 0, updated: r.updated_at, assessments: r.assessments, none: [], unanswered: 0 };
+      for (const x of r.no_homework_subjects || []) if (!d.none.includes(x)) d.none.push(x);
+      d.unanswered = Math.max(d.unanswered, r.unanswered || 0);
       d.due = Math.max(d.due, r.homework_due); d.on = Math.max(d.on, r.homework_on_time); d.late = Math.max(d.late, r.homework_late);
       d.overdue = Math.max(d.overdue, r.homework_overdue); d.open = Math.max(d.open, r.homework_open);
       d.focus = Math.max(d.focus, r.focus_minutes); d.locked = Math.max(d.locked, r.locked_minutes);
@@ -275,6 +305,23 @@
     const w = $("week"); w.replaceChildren();
     for (const [v, k, cls] of stats) { const s = el("div", "stat"); s.append(el("div", "v " + cls, String(v)), el("div", "k", k)); w.append(s); }
     $("week-note").textContent = latest ? `${latest.open} homework task${latest.open === 1 ? "" : "s"} still open.` : "";
+    const todayRow = byDay[day(new Date())];
+    if (todayRow && todayRow.unanswered > 0 && !link.removed_at) {
+      const r = el("div", "row"); const tt = el("div", "t");
+      tt.append(el("b", null, `${todayRow.unanswered} class${todayRow.unanswered === 1 ? "" : "es"} waiting for a homework answer`), el("span", null, "Distractions stay locked until they add the homework or say there was none."));
+      r.append(el("span", "dot warn"), tt); st.append(r);
+    }
+
+    // Classes marked "No homework", Monday to today
+    const nl = $("none-list"); nl.replaceChildren();
+    const noneDays = Object.entries(byDay).filter(([d, v]) => d >= day(monday) && v.none.length).sort(([a], [b]) => a.localeCompare(b));
+    if (!noneDays.length) nl.append(el("p", "muted small", "None yet this week."));
+    for (const [d, v] of noneDays) {
+      const r = el("div", "row"); const tt = el("div", "t");
+      const date = new Date(d + "T12:00:00").toLocaleDateString("en-AU", { weekday: "long", day: "numeric", month: "short" });
+      tt.append(el("b", null, v.none.join(", ")), el("span", null, date));
+      r.append(tt, el("span", "pill", `${v.none.length} class${v.none.length === 1 ? "" : "es"}`)); nl.append(r);
+    }
 
     // 4-week chart: on time (green) vs late (amber) per week
     const weeks = [];
@@ -355,6 +402,47 @@
       rl.append(box);
     }
   }
+
+  // Homework the parent set: open first (with Remove), then done (ticked). The form isn't rebuilt on refresh.
+  function renderHomework(link, tasks) {
+    $("hw-form").hidden = !!link.removed_at;
+    const list = $("hw-list"); list.replaceChildren();
+    const sorted = [...tasks].sort((a, b) => (!!a.done_at - !!b.done_at) || (a.due_at || "9").localeCompare(b.due_at || "9"));
+    if (!sorted.length) list.append(el("p", "muted small", `Nothing yet. Homework you add here shows up on ${nameOf(link)}'s computer.`));
+    for (const h of sorted) {
+      const r = el("div", "row" + (h.done_at ? " done" : "")); const tt = el("div", "t");
+      const late = !h.done_at && h.due_at && new Date(h.due_at) < new Date();
+      tt.append(el("b", null, `${h.subject}: ${h.note}`), el("span", null, h.done_at ? `Done ${when(h.done_at)}` : h.due_at ? `Due ${when(h.due_at)}` : `Added ${when(h.created_at)}`));
+      r.append(el("span", "tick" + (h.done_at ? " done" : "")), tt);
+      if (late) r.append(el("span", "pill bad", "Overdue"));
+      if (!h.done_at && h.parent_id === me.id && !link.removed_at) {
+        const x = el("button", "link-btn", "Remove");
+        x.onclick = async () => {
+          if (!confirm(`Remove “${h.subject}: ${h.note}”? If it's already reached their computer, it stays in their list until they tick it off.`)) return;
+          const { error } = await sb.from("parent_homework").delete().eq("id", h.id);
+          if (error) return fail("Couldn't remove it. Try again.");
+          await render(link);
+        };
+        r.append(x);
+      }
+      list.append(r);
+    }
+    const subjects = new Set(tasks.map((h) => h.subject));
+    const dl = $("hw-subjects"); dl.replaceChildren(); for (const x of subjects) { const o = el("option"); o.value = x; dl.append(o); }
+  }
+  $("hw-form").onsubmit = async (e) => {
+    e.preventDefault(); if (!current) return;
+    const subject = $("hw-subject").value.trim(), note = $("hw-note").value.trim(), dueText = $("hw-due").value;
+    if (!subject || !note) return;
+    const row = { student_id: current.student_id, subject: subject.slice(0, 60), note: note.slice(0, 500) };
+    if (dueText) { const d = new Date(dueText); if (isNaN(d) || d <= new Date()) return fail("Choose a due date in the future, or leave it empty."); row.due_at = d.toISOString(); }
+    $("hw-add").disabled = true;
+    const { error } = await sb.from("parent_homework").insert(row);
+    $("hw-add").disabled = false;
+    if (error) return fail(/row-level security/i.test(error.message) ? `Couldn't add it. ${nameOf(current)}'s ClassGuard Pro may have ended, or they removed you as a parent.` : "Couldn't add homework: " + error.message);
+    fail(""); $("hw-note").value = ""; $("hw-due").value = "";
+    await render(current);
+  };
 
   (async () => {
     const { data } = await sb.auth.getSession();
