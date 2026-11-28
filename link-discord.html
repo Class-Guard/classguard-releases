@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Link Discord · ClassGuard</title>
+<meta name="description" content="Link your Discord account to ClassGuard to get the ClassGuard Pro role in the ClassGuard Discord server.">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="stylesheet" href="theme.css">
+<script src="theme.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+         padding: calc(16px + env(safe-area-inset-top, 0px)) 16px calc(32px + env(safe-area-inset-bottom, 0px)); }
+  main { max-width: 560px; margin: 0 auto; }
+  header { display: flex; align-items: center; gap: 12px; margin: 8px 0 20px; }
+  header img { width: 40px; height: 40px; border-radius: 10px; }
+  header h1 { font-size: 1.2rem; margin: 0; flex: 1; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 22px; margin-bottom: 14px; }
+  h2 { font-size: 1.35rem; margin: 0 0 6px; }
+  p { margin: 0 0 14px; } .muted { color: var(--muted); } .small { font-size: .85rem; }
+  button { font: inherit; font-weight: 600; font-size: .95rem; border-radius: 10px; padding: 11px 18px; border: 1px solid var(--line); background: transparent; color: var(--ink); cursor: pointer; }
+  button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  button.discord { background: #5865f2; color: #fff; border-color: #5865f2; }
+  button:disabled { opacity: .5; cursor: default; }
+  .banner { border-radius: 12px; padding: 12px 14px; margin-bottom: 14px; font-size: .92rem; }
+  .banner.good { background: var(--accent-dim); color: var(--accent); } .banner.bad { background: var(--danger-dim); color: var(--danger); border: 1px solid var(--danger-line); }
+  .pill { font-size: .78rem; font-weight: 600; padding: 3px 10px; border-radius: 99px; background: #f1cf7e33; color: var(--warn); }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <header><img src="logo.png" alt=""><h1>ClassGuard</h1><button id="cg-gear" class="cg-gear inline"></button></header>
+  <p id="note" class="banner" hidden></p>
+
+  <section id="welcome" class="card" hidden>
+    <h2>Link your Discord</h2>
+    <p class="muted">With ClassGuard Pro you get the <span class="pill">ClassGuard Pro</span> role and the Pro lounge in the ClassGuard Discord server. First, sign in with the Google account you use in ClassGuard.</p>
+    <button class="primary" id="google">Sign in with Google</button>
+  </section>
+
+  <section id="account" class="card" hidden>
+    <h2 id="title">Link your Discord</h2>
+    <p class="muted" id="state"></p>
+    <button class="discord" id="link">Link Discord</button>
+    <button id="unlink" hidden>Unlink Discord</button>
+    <p class="muted small" style="margin:14px 0 0">ClassGuard stores only your Discord user ID and name, to give or remove the role. Linking also adds you to the ClassGuard server if you're not in it. Unlink any time. <a href="privacy.html#discord">Privacy</a></p>
+  </section>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+(() => {
+  const SITE = "https://class-guard.github.io/classguard-releases/";
+  const sb = supabase.createClient("https://lygaythvmuqscdfpjnfk.supabase.co", "sb_publishable_lb8X5WE6tg63BF6RMEL_Gw_JoV-UsNj",
+    { auth: { flowType: "pkce", detectSessionInUrl: true, persistSession: true } });
+  const $ = (id) => document.getElementById(id);
+  const note = (text, good) => { $("note").textContent = text; $("note").className = "banner " + (good ? "good" : "bad"); $("note").hidden = !text; };
+  const errors = { cancelled: "Discord linking was cancelled.", expired: "That took too long. Press Link Discord again.", discord: "Discord didn't confirm the link. Try again." };
+  const q = new URLSearchParams(location.search);
+  if (q.get("linked")) note("Discord linked. Welcome to the ClassGuard server!", true);
+  else if (errors[q.get("error")]) note(errors[q.get("error")], false);
+  if (q.has("linked") || q.has("error")) history.replaceState(null, "", "link-discord.html");
+
+  $("google").onclick = async () => {
+    try { localStorage.setItem("cg.parentReturn", "link"); } catch {}
+    await sb.auth.signInWithOAuth({ provider: "google", options: { redirectTo: SITE } });
+  };
+  async function call(action) {
+    const { data, error } = await sb.functions.invoke("discord-link", { body: { action } });
+    if (error || data?.error) throw new Error(data?.error || "Couldn't reach ClassGuard. Try again.");
+    return data;
+  }
+  async function render() {
+    const s = await call("status");
+    const pro = s.plan === "active" || s.plan === "early_access";
+    $("title").textContent = s.linked ? "Discord linked" : "Link your Discord";
+    $("state").textContent = s.linked
+      ? `Linked to ${s.name || "your Discord account"}. ` + (pro ? "You have the ClassGuard Pro role." : "You'll get the ClassGuard Pro role when you upgrade to Pro.")
+      : (pro ? "You have ClassGuard Pro: link Discord to get the role." : "Link now and you'll get the ClassGuard Pro role whenever you have Pro.");
+    $("link").hidden = s.linked; $("unlink").hidden = !s.linked;
+    $("account").hidden = false;
+  }
+  $("link").onclick = async () => { $("link").disabled = true; try { location.href = (await call("start")).url; } catch (e) { note(e.message, false); $("link").disabled = false; } };
+  $("unlink").onclick = async () => {
+    if (!confirm("Unlink Discord? The ClassGuard Pro role is removed from your Discord account.")) return;
+    try { await call("unlink"); note("Discord unlinked.", true); await render(); } catch (e) { note(e.message, false); }
+  };
+  cgSettings.addSection("Account", (sec) => {
+    const r = document.createElement("div"); r.className = "cg-row"; const t = document.createElement("div"); t.className = "grow"; t.textContent = "Signed in with Google";
+    const out = document.createElement("button"); out.textContent = "Sign out"; out.onclick = async () => { await sb.auth.signOut(); location.reload(); };
+    r.append(t, out); sec.append(r);
+  });
+  (async () => {
+    const { data } = await sb.auth.getSession();
+    if (!data.session) { $("welcome").hidden = false; return; }
+    try { await render(); } catch (e) { note(e.message, false); }
+  })();
+})();
+</script>
+</body>
+</html>
