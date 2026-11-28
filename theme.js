@@ -60,3 +60,20 @@
     gear.onclick = open;
   });
 })();
+
+// December: the ClassGuard logo wears a Santa hat (the visitor's own date, like the apps). ?christmas previews it.
+// The festive picture is placed so its green square lands exactly on the normal logo's.
+(function () {
+  if (new Date().getMonth() !== 11 && !/[?&]christmas\b/.test(location.search)) return;
+  function dress() {
+    document.querySelectorAll('img[src$="logo.png"]').forEach(function (img) {
+      if (img.parentElement.classList.contains("cg-hat-wrap")) return;
+      var wrap = document.createElement("span"); wrap.className = "cg-hat-wrap";
+      img.parentNode.insertBefore(wrap, img); wrap.appendChild(img);
+      var hat = document.createElement("img"); hat.src = "logo-christmas.png"; hat.alt = ""; hat.className = "cg-hat"; hat.setAttribute("aria-hidden", "true");
+      hat.onload = function () { img.style.visibility = "hidden"; };
+      wrap.appendChild(hat);
+    });
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", dress); else dress();
+})();
