@@ -362,7 +362,7 @@
     // Alerts
     const names = { protection_gap: ["Protection was off", "bad"], quit: ["ClassGuard was quit", "warn"], removed: ["ClassGuard was being removed", "bad"],
                     holiday_on: ["Holiday Mode turned on", "warn"], pin_lockout: ["Wrong PIN, five times", "bad"], parent_removed: ["A parent was removed", "warn"],
-                    pin_reset: ["PIN reset by ClassGuard support", "bad"] };
+                    pin_reset: ["PIN reset by ClassGuard support", "bad"], admin_account: ["Their computer account is an administrator", "warn"] };
     const al = $("alerts"); al.replaceChildren();
     if (!events.length) al.append(el("p", "muted small", "Nothing to report. 👍"));
     for (const e of events) {
