@@ -15,6 +15,7 @@
   a { color:var(--accent); }
   h1 { font-size:2rem; margin:0 0 6px; letter-spacing:-0.01em; }
   h2 { font-size:1.1rem; margin:34px 0 8px; }
+  h3 { font-size:1rem; margin:22px 0 6px; color:var(--ink); }
   p, li { color:var(--muted); }
   strong { color:var(--ink); }
   table { width:100%; border-collapse:collapse; margin-top:10px; font-size:0.95rem; }
@@ -23,6 +24,8 @@
   td { color:var(--muted); }
   .wrap { overflow-x:auto; }
   .back { display:inline-block; margin-bottom:28px; text-decoration:none; color:var(--muted); }
+  nav.toc { margin-top:18px; padding:14px 16px; border:1px solid var(--line); border-radius:12px; background:var(--panel); }
+  nav.toc a { display:inline-block; margin:2px 12px 2px 0; font-size:0.92rem; }
 </style>
 </head>
 <body>
@@ -30,55 +33,98 @@
   <a class="back" href="./">← ClassGuard</a>
   <h1>Privacy</h1>
   <p>Last updated 28 November 2026.</p>
+  <nav class="toc" aria-label="On this page">
+    <a href="#short">Short version</a><a href="#computers">On your computers</a><a href="#account">Your account</a><a href="#parents">Parents</a>
+    <a href="#for-parents">If you're a parent</a><a href="#payments">Payments</a><a href="#services">Services we use</a><a href="#updates">Updates and website</a>
+    <a href="#rights">Your choices and rights</a><a href="#children">Children</a>
+  </nav>
 
-  <h2>The short version</h2>
-  <p><strong>Your homework, timetable, assessments, focus sessions and PIN stay on your own computers.</strong> They sync directly between your Mac and PC over your home network, encrypted, and never pass through ClassGuard's servers.</p>
-  <p>You can use ClassGuard without an account. An account is only needed to connect your devices automatically and, later, for a subscription.</p>
+  <h2 id="short">The short version</h2>
+  <p><strong>Your own homework notes, timetable, assessments, focus sessions and PIN stay on your computers.</strong> They sync directly between your Mac and PC over your home network, encrypted, and don't pass through ClassGuard's servers.</p>
+  <p>You can use ClassGuard without an account. An account is used to connect your computers automatically, for ClassGuard Pro, and for parents. If you add a parent, a daily summary (counts and subject names, never what your own homework says) is shared with them, as listed <a href="#parents">below</a>.</p>
+  <p>ClassGuard has no advertising, tracking or analytics, and never sells your information.</p>
 
-  <h2>What the ClassGuard account stores</h2>
+  <h2 id="computers">On your computers</h2>
+  <ul>
+    <li><strong>Kept on the computer:</strong> homework and its notes, your timetable and holidays, assessments, blocked websites and apps, focus sessions, your PIN (stored only as a salted hash), minutes distractions were locked or you were focusing (the last 14 days), and the last 50 alerts. Settings are kept in a folder only ClassGuard's background service can change.</li>
+    <li><strong>Between your Mac and PC:</strong> these sync over your home network, encrypted and signed, once you connect them with your PIN.</li>
+    <li><strong>What ClassGuard changes on the computer while distractions are locked:</strong> it blocks websites in the computer's hosts file, sets page block lists in Chrome, Edge and Brave through their administrator settings, pauses or closes the games and VPN apps you chose, and can block proxy sites. These are undone when distractions unlock. Nothing about this is sent anywhere.</li>
+    <li>Removing ClassGuard keeps your planner data on the computer (so it isn't lost by accident). To remove it too, delete <code>/Library/Application Support/ClassGuard</code> and <code>~/Library/Application Support/ClassGuard</code> on a Mac, or <code>C:\ProgramData\ClassGuard</code> and <code>%LOCALAPPDATA%\ClassGuard</code> on a PC.</li>
+  </ul>
+
+  <h2 id="account">What the ClassGuard account stores</h2>
   <div class="wrap">
   <table>
-    <tr><th>What</th><th>Why</th></tr>
-    <tr><td>Your email address (from Google, or the email you sign in with)</td><td>To know which devices are yours and to let you sign in.</td></tr>
-    <tr><td>Each signed-in device: its name (e.g. "Sam's PC"), Mac or Windows, ClassGuard version, a public device key and when it was last seen</td><td>So your devices can find each other and you can remove old ones.</td></tr>
-    <tr><td>Short-lived connection requests between your devices</td><td>Encrypted on your Mac so that only your PC can read them; ClassGuard can't. Deleted once used, and after 15 minutes at most.</td></tr>
-    <tr><td>Your plan: free, trial (and when it ends) or ClassGuard Pro, whether it's monthly or yearly, and when it renews or ends</td><td>To know what your account includes. Your computers receive a signed copy so Pro keeps working offline.</td></tr>
-    <tr><td>If you subscribe: a Stripe customer ID and the subscription's status</td><td>To link your payment to your account. Nothing else about the payment is stored here.</td></tr>
+    <tr><th>What</th><th>Why</th><th>Kept</th></tr>
+    <tr><td>Your email address. Signing in with Google also gives ClassGuard's account service your name and profile picture from Google.</td><td>To know which computers are yours and let you sign in.</td><td>Until the account is deleted.</td></tr>
+    <tr><td>Sign-in records: when you signed in, and the IP address and browser used.</td><td>Security, kept by the account service (Supabase).</td><td>As set by Supabase.</td></tr>
+    <tr><td>Each signed-in computer: its name (e.g. "Sam's PC"), Mac or Windows, ClassGuard version, a public device key and when it was last seen.</td><td>So your computers can find each other and you can remove old ones.</td><td>Until you remove the computer or delete the account.</td></tr>
+    <tr><td>6-digit connection codes: the computer names, device IDs and public keys of the two computers being connected. (This works without an account too.)</td><td>To connect a Mac and a PC.</td><td>About 90 minutes at most.</td></tr>
+    <tr><td>Connection requests between your computers, encrypted on one computer so only the other can read them.</td><td>To pass the connection settings across. ClassGuard can't read them.</td><td>Deleted once used; at most about 75 minutes.</td></tr>
+    <tr><td>Your IP address, when a 6-digit code is typed.</td><td>To limit people guessing codes.</td><td>About an hour.</td></tr>
+    <tr><td>Your plan: free, trial (and when it ends) or ClassGuard Pro, monthly or yearly, and when it renews, ends or is cancelled.</td><td>To know what your account includes. Your computers receive a signed copy so Pro keeps working offline.</td><td>Until the account is deleted.</td></tr>
+    <tr><td>A Stripe customer ID, created as soon as you open the payment page (even if you don't pay), and the subscription's status.</td><td>To link a payment to your account.</td><td>Until the account is deleted.</td></tr>
   </table>
   </div>
-  <p>The account service is hosted by Supabase in Sydney, Australia. Signing in with Google uses Google's own sign-in page; ClassGuard never sees your Google password.</p>
 
   <h2 id="parents">Parents</h2>
-  <p>With ClassGuard Pro, a student can add a parent from Settings → Account &amp; devices → Parents. The parent signs in at the <a href="parent.html">parent page</a> with their own Google account and types a one-time code. Until then nothing is shared.</p>
-  <p>Once linked, each computer sends a short daily summary and some alerts to ClassGuard's account service, where only that student and their linked parents can read them:</p>
+  <p>With ClassGuard Pro, a student can add a parent from Settings → Account &amp; devices → Parents. ClassGuard shows a one-time code; the parent signs in at the <a href="parent.html">parent page</a> with their own Google account and types it. A parent can approve requests on a computer only after the student confirms them there with the ClassGuard PIN.</p>
+  <h3>What a linked parent can see</h3>
   <ul>
+    <li>Your account email, which computers you use (Mac or Windows), their ClassGuard version, and when each last checked in (about every hour while ClassGuard is open), plus a warning if a computer hasn't checked in for two days.</li>
     <li>Homework <em>counts</em> for each day: due, done on time, done late, overdue, still open.</li>
-    <li>Minutes in focus sessions and minutes distractions were locked.</li>
+    <li>Classes you marked "No homework" (the subject and day), and how many classes are waiting for a homework answer.</li>
+    <li>Minutes in focus sessions and minutes distractions were locked, per day.</li>
     <li>Upcoming assessments: the subject name and how many days away.</li>
-    <li>Alerts: protection stopped while the computer was on, ClassGuard quit or removed, Holiday Mode turned on, PIN locked out after wrong tries, a parent removed.</li>
-    <li>Requests for a break or holiday mode, with the optional reason, and the parent's answer.</li>
+    <li>Alerts: protection stopped while the computer was on, ClassGuard quit or removed, Holiday Mode turned on, PIN locked out after wrong tries, and a parent removed (with that parent's email).</li>
+    <li>Your requests for a break or Holiday Mode, with your optional reason, and the parent's answer and note.</li>
+    <li>Homework a parent sets for you: its subject, what to do, the due date, which parent set it, and when you finished it.</li>
   </ul>
-  <p><strong>Never shared:</strong> what homework says, websites visited, apps used, or anything typed. Summaries are kept for 13 weeks, alerts for 90 days and requests for 30 days, then deleted automatically.</p>
-  <p>A parent can stop seeing a student at any time from the parent page. A student can remove a parent with their PIN; the parent is told, and sees nothing new after that. Students can see exactly what's shared under "What parents see" in ClassGuard.</p>
-
-  <h2>Payments</h2>
-  <p>ClassGuard Pro payments are handled by <a href="https://stripe.com/au/privacy">Stripe</a>. You (or a parent) pay on Stripe's own page; your card details go to Stripe and never to ClassGuard. Stripe sends ClassGuard only whether the subscription is active and when it renews. Receipts, card changes and cancelling are on Stripe's subscription page, reachable from Settings → Account → Manage subscription.</p>
-
-  <h2>What ClassGuard does not do</h2>
+  <p><strong>Never shared:</strong> what your own homework notes say, websites visited, apps used, or anything you type.</p>
+  <h3>Who can see it, and for how long</h3>
   <ul>
-    <li>No advertising, tracking or analytics.</li>
-    <li>It doesn't upload your homework, timetable, browsing, or which apps you use.</li>
-    <li>It doesn't sell or share your information.</li>
+    <li>Only you and the parents linked to you. If more than one parent is linked, they can see each other's email and the homework each of them set.</li>
+    <li>When a parent links, they can also see summaries and alerts already stored from before (up to the limits below), including from while another parent was linked.</li>
+    <li>Summaries are kept for 13 weeks, alerts for 90 days and requests for 30 days. Homework a parent set is deleted 30 days after you finish it, or 120 days after it was set. Then it's deleted automatically.</li>
+    <li>If ClassGuard Pro ends, a linked parent keeps seeing new summaries until one of you ends the link.</li>
+    <li>A parent can stop seeing you at any time from the parent page. You can remove a parent with your PIN; the parent is told and loses access straight away. The record that they were linked is deleted 90 days later.</li>
+  </ul>
+  <p>The list in ClassGuard under "What parents see" matches this one.</p>
+
+  <h2 id="for-parents">If you're a parent</h2>
+  <p>ClassGuard's account service keeps your email (and, with Google, your name and profile picture), sign-in records, which students you're linked to and when, the homework you set, and your answers to requests with any note. When you type a code, your IP address is kept for about an hour to limit guessing. On your phone or computer, the parent page keeps your sign-in, the child you last viewed, any nicknames you give them, and your light or dark choice, in that browser only.</p>
+
+  <h2 id="payments">Payments</h2>
+  <p>ClassGuard Pro payments are handled by <a href="https://stripe.com/au/privacy">Stripe</a>. To take a payment, ClassGuard gives Stripe the account's email and an account ID. You (or a parent) pay on Stripe's own page; card details go to Stripe and never to ClassGuard. Stripe tells ClassGuard whether the subscription is active, whether it's monthly or yearly, when it renews, and whether it's been cancelled. Receipts, card changes and cancelling are on Stripe's page, reachable from Settings → Account → Manage subscription. Stripe keeps its own records under its policy, even after a ClassGuard account is deleted.</p>
+
+  <h2 id="services">Services ClassGuard uses</h2>
+  <div class="wrap">
+  <table>
+    <tr><th>Service</th><th>What for</th><th>Where</th></tr>
+    <tr><td>Supabase</td><td>The account service: everything in "What the ClassGuard account stores" and "Parents".</td><td>Database in Sydney, Australia. Some server functions may run outside Australia.</td></tr>
+    <tr><td>Google</td><td>"Sign in with Google". ClassGuard never sees your Google password.</td><td>Google's own sign-in page.</td></tr>
+    <tr><td>Stripe</td><td>Payments.</td><td>United States and elsewhere.</td></tr>
+    <tr><td>GitHub</td><td>Downloads, update checks, this website, and deletion requests.</td><td>United States.</td></tr>
+    <tr><td>jsDelivr</td><td>Delivers the sign-in library the parent page uses.</td><td>Worldwide network.</td></tr>
+  </table>
+  </div>
+  <p>Some of your information may therefore be handled outside Australia. ClassGuard shares information only with these services, to run ClassGuard, and with the parents you link.</p>
+
+  <h2 id="updates">Updates and this website</h2>
+  <p>Installed copies check <a href="https://github.com/Class-Guard/classguard-releases/releases">ClassGuard's GitHub releases</a> for updates several times a day. GitHub sees your IP address and which ClassGuard version and platform is asking, as with any download.</p>
+  <p>This website is hosted on GitHub Pages, which sees visitors' IP addresses. The home page asks ClassGuard's account service for the current price and GitHub for the latest version. The website uses no cookies, advertising or analytics; it remembers your light or dark choice in your browser.</p>
+
+  <h2 id="rights">Your choices and rights</h2>
+  <ul>
+    <li><strong>See or correct what's stored:</strong> your devices and plan are in Settings → Account; what's shared with parents is on the parent page. To get a copy of everything, or to correct something, ask using the link below.</li>
+    <li><strong>Remove devices or parents:</strong> in Settings → Account. Signing out stops that computer sending anything to the account service.</li>
+    <li><strong>Delete your account</strong> and everything it stores, including what was shared with parents: open an issue on <a href="https://github.com/Class-Guard/classguard-releases/issues">GitHub</a> asking for deletion. Don't include personal details there; we'll reply with a private way to confirm. A parent can ask the same way to delete their own account, or a child's account they're responsible for.</li>
+    <li><strong>Complaints:</strong> tell us the same way. If you're not happy with the answer, you can contact the Office of the Australian Information Commissioner at <a href="https://www.oaic.gov.au">oaic.gov.au</a>.</li>
   </ul>
 
-  <h2>Updates</h2>
-  <p>Installed copies check <a href="https://github.com/Class-Guard/classguard-releases/releases">ClassGuard's GitHub releases</a> for updates twice a day. GitHub sees that a download was requested, as with any website.</p>
-
-  <h2>Deleting your account</h2>
-  <p>Sign out and remove your devices from Settings → Account. To delete the account and everything it stores, open an issue on <a href="https://github.com/Class-Guard/classguard-releases/issues">GitHub</a> asking for deletion. Don't include personal details there; we'll reply with a private way to confirm.</p>
-
-  <h2>Students under 18</h2>
-  <p>ClassGuard is made for students. If you're under 18, check with a parent or guardian before creating an account. The account holds only the details above.</p>
+  <h2 id="children">Children and students</h2>
+  <p>ClassGuard is made for school students. If you're under 15, a parent or guardian should set up the account with you or agree to it; if you're under 18, check with them first. Parent features are turned on by the student, and the student can always see what's shared. A parent or guardian can ask for a copy of a child's information, or for it to be deleted, using the link above.</p>
+  <p>If this policy changes, the date at the top changes, and important changes are mentioned in the release notes.</p>
 </main>
 </body>
 </html>
