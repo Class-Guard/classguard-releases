@@ -68,8 +68,12 @@
   };
   async function call(action) {
     const { data, error } = await sb.functions.invoke("discord-link", { body: { action } });
-    if (error || data?.error) throw new Error(data?.error || "Couldn't reach ClassGuard. Try again.");
-    return data;
+    if (!error && !data?.error) return data;
+    // Show ClassGuard's own reason; an expired sign-in means signing in again.
+    let status = error?.context?.status, reason = data?.error;
+    try { reason ||= (await error.context.json()).error; } catch {}
+    if (status === 401) { await sb.auth.signOut(); $("account").hidden = true; $("welcome").hidden = false; throw new Error("Your sign-in expired. Sign in with Google again."); }
+    throw new Error(reason || "Couldn't reach ClassGuard. Check your internet connection and try again.");
   }
   async function render() {
     const s = await call("status");
@@ -79,6 +83,9 @@
       ? `Linked to ${s.name || "your Discord account"}. ` + (pro ? "You have the ClassGuard Pro role." : "You'll get the ClassGuard Pro role when you upgrade to Pro.")
       : (pro ? "You have ClassGuard Pro: link Discord to get the role." : "Link now and you'll get the ClassGuard Pro role whenever you have Pro.");
     $("link").hidden = s.linked; $("unlink").hidden = !s.linked;
+    // The wrong Google account is the usual reason for no role: this one isn't signed in on any computer.
+    if (!s.computers) $("state").textContent = `You're signed in here as ${s.email || "an account"}, which isn't signed in to ClassGuard on any computer. ` +
+      "Sign out (⚙ top right) and sign in with the Google account you use in the ClassGuard app, or use Settings → Account → Link Discord in the app.";
     $("account").hidden = false;
   }
   $("link").onclick = async () => { $("link").disabled = true; try { location.href = (await call("start")).url; } catch (e) { note(e.message, false); $("link").disabled = false; } };
