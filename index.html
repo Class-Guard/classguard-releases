@@ -360,7 +360,7 @@
 <script>
 // A parent signing in on parent.html comes back here (the address Google sign-in may return to);
 // send them on to the dashboard with the sign-in code.
-try { if (/[?&]code=/.test(location.search) && localStorage.getItem("cg.parentReturn")) { localStorage.removeItem("cg.parentReturn"); location.replace("parent.html" + location.search); } } catch (e) {}
+try { if (/[?&]code=/.test(location.search) && localStorage.getItem("cg.parentReturn")) { const back = localStorage.getItem("cg.parentReturn"); localStorage.removeItem("cg.parentReturn"); location.replace((back === "admin" ? "admin.html" : "parent.html") + location.search); } } catch (e) {}
 </script>
 <script>
 (() => {
