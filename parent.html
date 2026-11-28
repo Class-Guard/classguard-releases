@@ -118,6 +118,7 @@
     <div class="tabs" id="students" role="tablist"></div>
     <div id="removed" class="banner warn" hidden></div>
     <div id="stale" class="banner bad" hidden></div>
+    <div id="gaps" class="banner warn" hidden></div>
     <div class="card" id="status"></div>
     <div class="card" id="requests" hidden><p class="label">Requests</p>
       <p class="muted small" style="margin:0 0 4px">The first time, your child confirms you on each of their computers with their ClassGuard PIN (Settings → Account &amp; devices → Parents). Until then your approvals won't unlock that computer.</p>
@@ -249,11 +250,12 @@
     $("removed").hidden = !link.removed_at;
     if (link.removed_at) { $("removed").textContent = `${name} removed you as a parent on ${when(link.removed_at)}. Ask them for a new code to see reports again.`; }
     const since = new Date(); since.setDate(since.getDate() - 34);
-    const [sum, ev, req, hw] = await Promise.all([
+    const [sum, ev, req, hw, seqs] = await Promise.all([
       sb.from("daily_summaries").select("*").eq("student_id", sid).gte("day", day(since)).order("day"),
       sb.from("student_events").select("*").eq("student_id", sid).order("at", { ascending: false }).limit(30),
       sb.from("unlock_requests").select("*").eq("student_id", sid).order("created_at", { ascending: false }).limit(10),
       sb.from("parent_homework").select("*").eq("student_id", sid).order("created_at", { ascending: false }).limit(30),
+      sb.from("student_events").select("device_id,seq").eq("student_id", sid).not("seq", "is", null).limit(1000),
     ]);
     if (sum.error || ev.error || req.error) return fail("Couldn't load reports. Pull down to refresh.");
     const rows = sum.data || [], events = ev.data || [], requests = req.data || [];
@@ -275,6 +277,17 @@
     const lastSeen = Object.values(devices).map((r) => r.updated_at).sort().pop();
     const stale = !lastSeen || Date.now() - new Date(lastSeen) > 48 * 3600e3;
     $("stale").hidden = !stale || !!link.removed_at;
+
+    // Each computer numbers its alerts; missing numbers are alerts that never arrived.
+    const gaps = [];
+    const byDevice = {};
+    for (const e of (seqs.error ? [] : seqs.data || [])) (byDevice[e.device_id] ||= new Set()).add(Number(e.seq));
+    for (const [device, set] of Object.entries(byDevice)) {
+      const list = [...set].sort((a, b) => a - b), missing = list[list.length - 1] - list[0] + 1 - list.length;
+      if (missing > 0) gaps.push(`${devices[device]?.platform === "windows" ? "Windows PC" : devices[device] ? "Mac" : "A computer"}: ${missing} alert${missing === 1 ? "" : "s"} never arrived`);
+    }
+    $("gaps").hidden = !gaps.length || !!link.removed_at;
+    $("gaps").textContent = gaps.length ? gaps.join(" · ") + ". ClassGuard numbers every alert, so this can mean someone stopped alerts being sent. Worth asking about." : "";
     $("stale").textContent = lastSeen ? `No check-in from ClassGuard since ${when(lastSeen)}. Their computer may be off, offline, or signed out of ClassGuard.` : "No reports yet. They appear within an hour once ClassGuard is open and signed in on their computer.";
 
     // Status
