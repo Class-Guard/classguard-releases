@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>ClassGuard support</title>
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="stylesheet" href="theme.css">
+<script src="theme.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+         padding: calc(16px + env(safe-area-inset-top, 0px)) 16px calc(32px + env(safe-area-inset-bottom, 0px)); }
+  main { max-width: 760px; margin: 0 auto; }
+  header { display: flex; align-items: center; gap: 12px; margin: 8px 0 20px; }
+  header img { width: 40px; height: 40px; border-radius: 10px; }
+  header h1 { font-size: 1.2rem; margin: 0; flex: 1; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 18px; margin-bottom: 14px; }
+  .label { font-size: .72rem; letter-spacing: .12em; text-transform: uppercase; color: var(--faint); margin: 0 0 10px; font-weight: 600; }
+  .muted { color: var(--muted); } .small { font-size: .85rem; }
+  .row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); flex-wrap: wrap; }
+  .row:first-of-type { border-top: 0; }
+  .row .t { flex: 1; min-width: 200px; }
+  .row .t b { display: block; font-weight: 600; }
+  .row .t span { color: var(--muted); font-size: .85rem; }
+  button { font: inherit; font-weight: 600; font-size: .95rem; border-radius: 10px; padding: 10px 16px; border: 1px solid var(--line); background: transparent; color: var(--ink); cursor: pointer; }
+  button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  button.danger { color: var(--danger); border-color: var(--danger-line); }
+  button:disabled { opacity: .5; cursor: default; }
+  input, textarea { font: inherit; color: var(--ink); background: var(--panel2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; width: 100%; }
+  input:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .search { display: flex; gap: 8px; } .search input { flex: 1; }
+  .banner { border-radius: 12px; padding: 12px 14px; margin-bottom: 14px; font-size: .92rem; }
+  .banner.warn { background: var(--warn-dim); color: var(--warn); border: 1px solid var(--warn-line); }
+  .banner.bad { background: var(--danger-dim); color: var(--danger); border: 1px solid var(--danger-line); }
+  .banner.good { background: var(--accent-dim); color: var(--accent); border: 1px solid var(--accent-dim); }
+  .pill { font-size: .75rem; font-weight: 600; padding: 3px 9px; border-radius: 99px; background: var(--accent-dim); color: var(--accent); white-space: nowrap; }
+  .pill.muted { background: var(--panel2); color: var(--muted); }
+  .reset { margin-top: 10px; width: 100%; } .reset textarea { min-height: 60px; margin: 6px 0 8px; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <header><img src="logo.png" alt=""><h1>ClassGuard support</h1><button id="cg-gear" class="cg-gear inline"></button></header>
+
+  <section id="welcome" class="card" hidden>
+    <p>Staff only. Sign in with your ClassGuard Google account.</p>
+    <button class="primary" id="google">Sign in with Google</button>
+  </section>
+
+  <section id="notstaff" class="card" hidden>
+    <p><b>This account isn't ClassGuard staff.</b></p>
+    <p class="muted small" id="who"></p>
+    <button id="ask">Ask to be staff</button>
+    <p class="muted small" id="asked" hidden>Asked. Someone with access to ClassGuard's database needs to approve it.</p>
+  </section>
+
+  <section id="staff" hidden>
+    <div class="banner warn">A PIN reset hands control of that computer's settings to whoever sets the new PIN. Only reset after you're sure the request comes from the student's parent or guardian, or from the student with their parent's agreement. Parents are alerted automatically.</div>
+    <div class="card">
+      <p class="label">Find a student</p>
+      <form class="search" id="find"><input id="email" type="email" placeholder="Student's ClassGuard account email" required autocomplete="off"><button class="primary">Find</button></form>
+    </div>
+    <div id="result"></div>
+  </section>
+  <p id="error" class="banner bad" hidden></p>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+(() => {
+  const SITE = "https://class-guard.github.io/classguard-releases/";
+  const sb = supabase.createClient("https://lygaythvmuqscdfpjnfk.supabase.co", "sb_publishable_lb8X5WE6tg63BF6RMEL_Gw_JoV-UsNj",
+    { auth: { flowType: "pkce", detectSessionInUrl: true, persistSession: true } });
+  const $ = (id) => document.getElementById(id);
+  const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+  const show = (id) => { for (const s of ["welcome", "notstaff", "staff"]) $(s).hidden = s !== id; };
+  const fail = (msg) => { $("error").textContent = msg; $("error").hidden = !msg; };
+  const when = (iso) => iso ? new Date(iso).toLocaleString("en-AU", { day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit" }) : "never";
+
+  $("google").onclick = async () => {
+    try { localStorage.setItem("cg.parentReturn", "admin"); } catch {}
+    await sb.auth.signInWithOAuth({ provider: "google", options: { redirectTo: SITE } });
+  };
+  $("ask").onclick = async () => { const { error } = await sb.rpc("staff_request"); if (error) return fail(error.message); $("ask").hidden = true; $("asked").hidden = false; };
+  cgSettings.addSection("Account", (sec) => {
+    const r = el("div", "cg-row"); const t = el("div", "grow"); t.append(document.createTextNode("Staff sign-in"));
+    const out = el("button", null, "Sign out"); out.onclick = async () => { await sb.auth.signOut(); location.reload(); };
+    r.append(t, out); sec.append(r);
+  });
+
+  async function find(email) {
+    fail(""); const box = $("result"); box.replaceChildren(el("p", "muted", "Looking…"));
+    const { data, error } = await sb.rpc("admin_find_student", { email });
+    if (error) { box.replaceChildren(); return fail(error.message); }
+    box.replaceChildren();
+    if (!data) { box.append(el("div", "card muted", "No ClassGuard account with that email.")); return; }
+    const s = data;
+    const acc = el("div", "card"); acc.append(el("p", "label", "Account"));
+    const r = el("div", "row"); const t = el("div", "t"); t.append(el("b", null, s.email), el("span", null, `Plan: ${s.plan || "free"} · joined ${when(s.created_at)}`)); r.append(t); acc.append(r);
+    box.append(acc);
+
+    const par = el("div", "card"); par.append(el("p", "label", "Parents"));
+    if (!s.parents.length) par.append(el("p", "muted small", "No parents linked. Be extra careful: nobody will be alerted except the student."));
+    for (const p of s.parents) { const r = el("div", "row"); const t = el("div", "t"); t.append(el("b", null, p.email || "A parent"), el("span", null, p.removed_at ? `Removed ${when(p.removed_at)}` : `Linked ${when(p.since)}`)); r.append(t); par.append(r); }
+    box.append(par);
+
+    const dev = el("div", "card"); dev.append(el("p", "label", "Computers"));
+    if (!s.devices.length) dev.append(el("p", "muted small", "No computers signed in to this account. A PIN reset needs ClassGuard signed in on that computer."));
+    for (const d of s.devices) {
+      const r = el("div", "row"); const t = el("div", "t");
+      t.append(el("b", null, d.name), el("span", null, `${d.platform === "windows" ? "Windows" : "Mac"} · ClassGuard ${d.app_version || "?"} · seen ${when(d.last_seen)}`));
+      const pending = s.resets.find((x) => x.device_id === d.device_id && !x.used_at && new Date(x.expires_at) > new Date());
+      const btn = el("button", "danger", pending ? "Reset waiting" : "Reset PIN…"); btn.disabled = !!pending;
+      r.append(t, btn);
+      const form = el("div", "reset"); form.hidden = true;
+      const reason = el("textarea"); reason.maxLength = 200; reason.placeholder = "Why (e.g. which support request, who asked, how you checked it's them)";
+      const go = el("button", "danger", "Reset this computer's PIN"), cancel = el("button", null, "Cancel");
+      form.append(el("span", "muted small", "The computer clears its PIN within a minute of ClassGuard being open and signed in there (the reset lasts 24 hours). Blocking keeps running; settings stay locked until a new PIN is set."), reason, go, document.createTextNode(" "), cancel);
+      btn.onclick = () => { form.hidden = false; btn.hidden = true; reason.focus(); };
+      cancel.onclick = () => { form.hidden = true; btn.hidden = false; };
+      go.onclick = async () => {
+        if (!reason.value.trim()) return fail("Say why you're resetting it.");
+        if (!confirm(`Reset the PIN on ${d.name} for ${s.email}? Their parents will be alerted.`)) return;
+        go.disabled = true; fail("");
+        const { data: out, error } = await sb.functions.invoke("admin-pin-reset", { body: { studentId: s.id, deviceId: d.device_id, reason: reason.value.trim() } });
+        if (error || out?.error) { go.disabled = false; return fail(out?.error || "Couldn't send the reset. Try again."); }
+        await find(email);
+        const ok = el("div", "banner good", `Reset sent to ${out.computer}. It applies next time ClassGuard is open and signed in there, until ${when(out.expiresAt)}.`); $("result").prepend(ok);
+      };
+      dev.append(r, form);
+    }
+    box.append(dev);
+
+    if (s.resets.length) {
+      const hist = el("div", "card"); hist.append(el("p", "label", "PIN resets"));
+      for (const x of s.resets) { const r = el("div", "row"); const t = el("div", "t"); const dn = s.devices.find((d) => d.device_id === x.device_id)?.name || "A computer";
+        t.append(el("b", null, `${dn} · ${when(x.created_at)}`), el("span", null, x.reason)); r.append(t, el("span", "pill" + (x.used_at ? "" : " muted"), x.used_at ? `Applied ${when(x.used_at)}` : new Date(x.expires_at) > new Date() ? "Waiting" : "Expired")); hist.append(r); }
+      box.append(hist);
+    }
+  }
+  $("find").onsubmit = (e) => { e.preventDefault(); find($("email").value.trim()); };
+
+  (async () => {
+    const { data } = await sb.auth.getSession();
+    const me = data.session && data.session.user;
+    if (!me) return show("welcome");
+    const { data: staff, error } = await sb.rpc("cg_is_staff");
+    if (error) return fail("Couldn't check staff access: " + error.message);
+    if (!staff) { $("who").textContent = `Signed in as ${me.email}.`; return show("notstaff"); }
+    show("staff");
+  })();
+})();
+</script>
+</body>
+</html>
