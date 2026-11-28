@@ -48,7 +48,7 @@
   <ul>
     <li><strong>Kept on the computer:</strong> homework and its notes, your timetable and holidays, assessments, blocked websites and apps, focus sessions, your PIN (stored only as a salted hash), minutes distractions were locked or you were focusing (the last 14 days), and the last 50 alerts. Settings are kept in a folder only ClassGuard's background service can change.</li>
     <li><strong>Between your Mac and PC:</strong> these sync over your home network, encrypted and signed, once you connect them with your PIN.</li>
-    <li><strong>What ClassGuard changes on the computer while distractions are locked:</strong> it blocks websites in the computer's hosts file, sets page block lists in Chrome, Edge and Brave through their administrator settings, pauses or closes the games and VPN apps you chose, and can block proxy sites. These are undone when distractions unlock. Nothing about this is sent anywhere.</li>
+    <li><strong>What ClassGuard changes on the computer while distractions are locked:</strong> it blocks websites in the computer's hosts file, sets page block lists in Chrome, Edge, Brave and Firefox through their administrator settings (and turns off their "secure DNS", which would skip the blocks), pauses browsers it can't filter such as Safari or Opera (you can turn this off), pauses or closes the games and VPN apps you chose, and blocks common proxy and games websites. It also checks whether the signed-in account is a computer administrator, so it can warn you and your parents. These are undone when distractions unlock. Nothing about this is sent anywhere.</li>
     <li>Removing ClassGuard keeps your planner data on the computer (so it isn't lost by accident). To remove it too, delete <code>/Library/Application Support/ClassGuard</code> and <code>~/Library/Application Support/ClassGuard</code> on a Mac, or <code>C:\ProgramData\ClassGuard</code> and <code>%LOCALAPPDATA%\ClassGuard</code> on a PC.</li>
   </ul>
 
@@ -76,7 +76,7 @@
     <li>Classes you marked "No homework" (the subject and day), and how many classes are waiting for a homework answer.</li>
     <li>Minutes in focus sessions and minutes distractions were locked, per day.</li>
     <li>Upcoming assessments: the subject name and how many days away.</li>
-    <li>Alerts: protection stopped while the computer was on, ClassGuard quit or removed, Holiday Mode turned on, PIN locked out after wrong tries, PIN reset by ClassGuard support, and a parent removed (with that parent's email).</li>
+    <li>Alerts: protection stopped while the computer was on, ClassGuard quit or removed, Holiday Mode turned on, PIN locked out after wrong tries, PIN reset by ClassGuard support, the computer account being an administrator, and a parent removed (with that parent's email).</li>
     <li>Your requests for a break or Holiday Mode, with your optional reason, and the parent's answer and note.</li>
     <li>Homework a parent sets for you: its subject, what to do, the due date, which parent set it, and when you finished it.</li>
   </ul>
