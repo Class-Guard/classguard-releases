@@ -1,0 +1,33 @@
+# Checks ClassGuard's website, downloads and account service every 10 minutes and posts changes to Discord #status.
+# Source: Tools/status in the ClassGuard project. The webhook is the DISCORD_STATUS_WEBHOOK repository secret.
+name: ClassGuard status
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch: {}
+permissions:
+  contents: read
+concurrency:
+  group: status
+  cancel-in-progress: false
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github/status
+      - uses: actions/cache/restore@v4
+        with:
+          path: .status
+          key: status-${{ github.run_id }}
+          restore-keys: status-
+      - run: python3 .github/status/check.py
+        env:
+          DISCORD_STATUS_WEBHOOK: ${{ secrets.DISCORD_STATUS_WEBHOOK }}
+      - uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: .status
+          key: status-${{ github.run_id }}
